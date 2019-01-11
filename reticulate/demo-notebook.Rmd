@@ -20,6 +20,7 @@ readr::write_csv(nycflights13::flights,path = "flights.csv")
 ```
 
 ```{r app}
+# update apps set app_mode = 2 where appid = 31;
 library(shiny)
 library(stringr)
 ui <- fluidPage(
