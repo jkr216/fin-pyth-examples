@@ -1,0 +1,91 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r setup}
+library(reticulate)
+```
+
+```{python}
+import sys
+sys.version
+```
+
+
+```{python}
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from pandas_datareader import data
+import pandas as pd
+import seaborn as sns
+```
+
+```{python}
+# Define the instruments to download. We would like to see Apple, Microsoft and the S&P500 index.
+tickers = ['AAPL', 'MSFT', '^GSPC']
+
+# We would like all available data from 01/01/2000 until 12/31/2016.
+start_date = '2010-01-01'
+end_date = '2016-12-31'
+
+# User pandas_reader.data.DataReader to load the desired data. As simple as that.
+panel_data = data.DataReader(tickers, 'yahoo', start_date, end_date)
+
+sectors = pd.read_csv("https://colorado.rstudio.com/rsc/content/2138/sector_prices_2000_2018.csv")
+sectors.head()
+
+
+
+close = panel_data['Close']
+
+print(close.head())
+```
+
+
+```{python}
+# Getting all weekdays between 01/01/2000 and 12/31/2016
+all_weekdays = pd.date_range(start=start_date, end=end_date, freq='B')
+
+close = close.reindex(all_weekdays)
+
+# Reindexing will insert missing values (NaN) for the dates that were not present
+# in the original set. To cope with this, we can fill the missing by replacing them
+# with the latest available price for each instrument.
+close = close.fillna(method='ffill')
+
+close_summary = close.describe()
+```
+
+```{r}
+library(reticulate)
+py$close_summary
+```
+
+```{python}
+# Get the MSFT timeseries. This now returns a Pandas Series object indexed by date.
+msft = close.loc[:, 'MSFT']
+
+# Calculate the 20 and 100 days moving averages of the closing prices
+short_rolling_msft = msft.rolling(window=20).mean()
+long_rolling_msft = msft.rolling(window=100).mean()
+
+# Plot everything by leveraging the very powerful matplotlib package
+fig, ax = plt.subplots(figsize=(16,9))
+
+ax.plot(msft.index, msft, label='MSFT')
+ax.plot(short_rolling_msft.index, short_rolling_msft, label='20 days rolling')
+ax.plot(long_rolling_msft.index, long_rolling_msft, label='100 days rolling')
+
+ax.set_xlabel('Date')
+ax.set_ylabel('Adjusted closing price ($)')
+ax.legend()
+#fig.tight_layout()
+plt.show()
+```
+
