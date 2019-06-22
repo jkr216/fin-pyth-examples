@@ -1,0 +1,64 @@
+---
+title: "reticulated-shiny"
+runtime: shiny
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(reticulate)
+library(tidyverse)
+library(highcharter)
+library(janitor)
+library(tidyquant)
+source_python('source-py/fmac-predictor.py')
+```
+
+
+
+Sidebar {.sidebar}
+=====================================
+  
+```{r}
+states <- 
+  py$freddie %>%
+  colnames()
+
+selectInput("state_1", "state 1", choices = states, selected = "ga")
+
+selectInput("state_2", "state 2", choices = states, selected = "fl")
+
+selectInput("state_3", "predicted", choices = states, selected = "ny")
+
+numericInput("test_size", "test size", 0.2, min = .1, max = .5, step = .05)
+
+actionButton("go", "submit")
+```
+
+hpi
+=====================================  
+
+Row
+-------------------------------
+
+### Chart of preds v actual
+
+
+```{r}
+preds <- eventReactive(input$go, {
+  py$predict(py$freddie, input$state_1, input$state_2, input$state_3, input$test_size)
+  })
+
+renderHighchart({
+preds() %>%
+  gather(type, value, -date) %>%
+  mutate(date = ymd(date)) %>%
+  hchart(., hcaes(x = date, y = value, group = type), type = "line") %>%
+  hc_title(text = "Predictions versus actual") %>%
+  hc_subtitle(text = "modeled with pyth, vis'd with R")
+})
+```
+

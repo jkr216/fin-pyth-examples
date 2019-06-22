@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include = FALSE, message = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, comment = NA)
+library(reticulate)
+library(tidyverse)
+library(tidyquant)
+library(janitor)
+
+source_python('fmac-predictor.py')
+```
+
+
+```{python}
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from pandas_datareader import data
+import pandas as pd
+import sklearn
+```
+
+```{python}
+freddie = pd.read_excel("http://www.freddiemac.com/fmac-resources/research/docs/State_and_US_SA.xls", skiprows = 5)
+freddie = freddie.dropna(axis = 0, how = 'any')
+print(freddie.head())
+```
+
+```{r}
+py$freddie %>% 
+    mutate(AK = as.numeric(AK),
+         Date = ymd(parse_date_time(as.character(Month), "%Y%m"))) %>% 
+    #clean_names() %>% 
+    ggplot(aes(x = Date, y = FL)) +
+    geom_line(color = "cornflowerblue")
+```
+
+
+```{python}
+
+predicted_house_price = predict('GA', 'FL', 'NY')
+
+print(predicted_house_price.head())
+```
+
+```{r}
+preds <- py$predict('GA', 'FL', 'NY')
+
+preds %>% 
+  ggplot(aes(x = predicted, y = actual)) +
+  geom_point(color = "cornflowerblue") +
+  geom_smooth(method = "lm")
+```
+
+
+```{r}
+py$predicted_house_price %>% 
+  as_tibble() %>% 
+  ggplot(aes(x = predicted, y = actual)) +
+  geom_point(color = "cornflowerblue") +
+  geom_smooth(method = "lm")
+```
+
